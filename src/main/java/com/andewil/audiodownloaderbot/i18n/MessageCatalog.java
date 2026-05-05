@@ -1,4 +1,4 @@
-package com.example.audiodownloaderbot.i18n;
+package com.andewil.audiodownloaderbot.i18n;
 
 import java.util.Locale;
 import org.springframework.stereotype.Component;

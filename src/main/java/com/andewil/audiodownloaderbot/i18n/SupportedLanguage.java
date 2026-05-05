@@ -1,4 +1,4 @@
-package com.example.audiodownloaderbot.i18n;
+package com.andewil.audiodownloaderbot.i18n;
 
 public enum SupportedLanguage {
     ENGLISH,

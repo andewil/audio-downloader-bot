@@ -1,6 +1,6 @@
-package com.example.audiodownloaderbot;
+package com.andewil.audiodownloaderbot;
 
-import com.example.audiodownloaderbot.config.BotProperties;
+import com.andewil.audiodownloaderbot.config.BotProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

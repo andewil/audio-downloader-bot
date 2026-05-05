@@ -1,6 +1,6 @@
-package com.example.audiodownloaderbot.audio;
+package com.andewil.audiodownloaderbot.audio;
 
-import com.example.audiodownloaderbot.config.BotProperties;
+import com.andewil.audiodownloaderbot.config.BotProperties;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;

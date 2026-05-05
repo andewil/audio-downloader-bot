@@ -1,4 +1,4 @@
-package com.example.audiodownloaderbot.audio;
+package com.andewil.audiodownloaderbot.audio;
 
 public class AudioTooLargeException extends RuntimeException {
 

@@ -1,12 +1,12 @@
-package com.example.audiodownloaderbot.bot;
+package com.andewil.audiodownloaderbot.bot;
 
-import com.example.audiodownloaderbot.audio.AudioDownloadService;
-import com.example.audiodownloaderbot.audio.AudioNotFoundException;
-import com.example.audiodownloaderbot.audio.AudioTooLargeException;
-import com.example.audiodownloaderbot.audio.DownloadedAudio;
-import com.example.audiodownloaderbot.config.BotProperties;
-import com.example.audiodownloaderbot.i18n.MessageCatalog;
-import com.example.audiodownloaderbot.i18n.SupportedLanguage;
+import com.andewil.audiodownloaderbot.audio.AudioDownloadService;
+import com.andewil.audiodownloaderbot.audio.AudioNotFoundException;
+import com.andewil.audiodownloaderbot.audio.AudioTooLargeException;
+import com.andewil.audiodownloaderbot.audio.DownloadedAudio;
+import com.andewil.audiodownloaderbot.config.BotProperties;
+import com.andewil.audiodownloaderbot.i18n.MessageCatalog;
+import com.andewil.audiodownloaderbot.i18n.SupportedLanguage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;

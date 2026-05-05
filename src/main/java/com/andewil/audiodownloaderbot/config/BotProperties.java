@@ -1,4 +1,4 @@
-package com.example.audiodownloaderbot.config;
+package com.andewil.audiodownloaderbot.config;
 
 import java.nio.file.Path;
 import java.time.Duration;

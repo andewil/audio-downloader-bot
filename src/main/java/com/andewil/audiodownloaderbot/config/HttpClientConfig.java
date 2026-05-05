@@ -1,4 +1,4 @@
-package com.example.audiodownloaderbot.config;
+package com.andewil.audiodownloaderbot.config;
 
 import java.net.http.HttpClient;
 import org.springframework.context.annotation.Bean;

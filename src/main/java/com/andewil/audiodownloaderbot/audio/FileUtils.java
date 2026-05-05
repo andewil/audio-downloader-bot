@@ -1,4 +1,4 @@
-package com.example.audiodownloaderbot.audio;
+package com.andewil.audiodownloaderbot.audio;
 
 import java.io.IOException;
 import java.nio.file.Files;
