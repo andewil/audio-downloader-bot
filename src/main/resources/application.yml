@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: audio-downloader-bot
+
+bot:
+  username: ${TELEGRAM_BOT_USERNAME:}
+  token: ${TELEGRAM_BOT_TOKEN:}
+  download-dir: ${BOT_DOWNLOAD_DIR:${java.io.tmpdir}/audio-downloader-bot}
+  request-timeout: ${BOT_REQUEST_TIMEOUT:PT2M}
+  processing-timeout: ${BOT_PROCESSING_TIMEOUT:PT10M}
+  max-file-size: ${BOT_MAX_FILE_SIZE:52428800}
+  yt-dlp-path: ${YT_DLP_PATH:yt-dlp}
+  ffmpeg-path: ${FFMPEG_PATH:ffmpeg}
