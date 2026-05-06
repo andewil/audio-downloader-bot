@@ -1,5 +1,7 @@
 package com.andewil.audiodownloaderbot.audio;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.andewil.audiodownloaderbot.config.BotProperties;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,12 +18,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class AudioDownloadService {
 
     private static final Set<String> TELEGRAM_AUDIO_EXTENSIONS = Set.of(".mp3", ".m4a");
@@ -29,18 +34,22 @@ public class AudioDownloadService {
 
     private final BotProperties properties;
     private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
-    public AudioDownloadService(BotProperties properties, HttpClient httpClient) {
+    public AudioDownloadService(BotProperties properties, HttpClient httpClient, ObjectMapper objectMapper) {
         this.properties = properties;
         this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
     }
 
     public DownloadedAudio download(String rawUrl) {
+        log.info("Downloading audio from {}", rawUrl);
         URI url = parseUrl(rawUrl);
         createDownloadDir();
 
         Optional<DownloadedAudio> viaYtDlp = downloadWithYtDlp(url);
         if (viaYtDlp.isPresent()) {
+            log.info("Downloaded audio via yt-dlp from {}", url);
             return viaYtDlp.get();
         }
 
@@ -48,16 +57,19 @@ public class AudioDownloadService {
         Path converted = null;
         try {
             URI audioUrl = findAudioUrl(url);
-            downloaded = downloadFile(audioUrl, extensionFromUri(audioUrl).orElse(".audio"));
+            downloaded = downloadFile(audioUrl, url);
             validateFileSize(downloaded);
 
             if (isTelegramCompatible(downloaded)) {
+                log.info("Downloaded audio is compatible with Telegram from {}", url);
                 return new DownloadedAudio(downloaded, safeFilename(downloaded));
             }
 
             converted = convertToMp3(downloaded);
             validateFileSize(converted);
             FileUtils.deleteQuietly(downloaded);
+
+            log.info("Converted audio to MP3 from {}", url);
             return new DownloadedAudio(converted, safeFilename(converted));
         } catch (RuntimeException e) {
             FileUtils.deleteQuietly(downloaded);
@@ -133,7 +145,7 @@ public class AudioDownloadService {
             HttpRequest request = HttpRequest.newBuilder(pageUrl)
                     .timeout(properties.getRequestTimeout())
                     .GET()
-                    .header("User-Agent", "audio-downloader-bot/1.0")
+                    .header("User-Agent", userAgent())
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 400) {
@@ -145,18 +157,65 @@ public class AudioDownloadService {
             }
 
             Document document = Jsoup.parse(response.body(), pageUrl.toString());
-            return document.select("audio[src], audio source[src], source[type^=audio][src], a[href], meta[property=og:audio], meta[property=og:audio:url]")
+            Optional<URI> staticCandidate = document.select("audio[src], audio source[src], source[type^=audio][src], a[href], meta[property=og:audio], meta[property=og:audio:url]")
                     .stream()
                     .map(this::audioCandidate)
                     .flatMap(Optional::stream)
-                    .filter(this::looksLikeAudio)
-                    .findFirst()
+                    .filter(candidate -> looksLikeAudio(candidate) || isAudioResource(candidate, pageUrl))
+                    .findFirst();
+            if (staticCandidate.isPresent()) {
+                return staticCandidate.get();
+            }
+
+            return findAjaxPlayerAudioUrl(document, pageUrl)
                     .orElseThrow(() -> new AudioNotFoundException("Audio was not found"));
         } catch (IOException e) {
             throw new AudioNotFoundException("Unable to read page");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new AudioNotFoundException("Interrupted while reading page");
+        }
+    }
+
+    private Optional<URI> findAjaxPlayerAudioUrl(Document document, URI pageUrl) {
+        return document.select("[data-play-id]")
+                .stream()
+                .map(element -> element.attr("data-play-id"))
+                .filter(id -> !id.isBlank())
+                .distinct()
+                .map(id -> ajaxPlayerUrl(pageUrl, id))
+                .flatMap(Optional::stream)
+                .filter(candidate -> looksLikeAudio(candidate) || isAudioResource(candidate, pageUrl))
+                .findFirst();
+    }
+
+    private Optional<URI> ajaxPlayerUrl(URI pageUrl, String id) {
+        try {
+            URI endpoint = pageUrl.resolve("/ajax.php?side=front&mod=playing&id=" + id + "&act=one");
+            HttpRequest request = HttpRequest.newBuilder(endpoint)
+                    .timeout(properties.getRequestTimeout())
+                    .GET()
+                    .header("User-Agent", userAgent())
+                    .header("Referer", pageUrl.toString())
+                    .header("X-Requested-With", "XMLHttpRequest")
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 400) {
+                return Optional.empty();
+            }
+
+            JsonNode root = objectMapper.readTree(response.body());
+            JsonNode first = root.isArray() && !root.isEmpty() ? root.get(0) : root;
+            JsonNode url = first == null ? null : first.get("url");
+            if (url == null || !url.isTextual() || url.asText().isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(pageUrl.resolve(url.asText()));
+        } catch (IOException | InterruptedException | RuntimeException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            return Optional.empty();
         }
     }
 
@@ -175,18 +234,25 @@ public class AudioDownloadService {
         }
     }
 
-    private Path downloadFile(URI audioUrl, String extension) {
-        Path target = properties.getDownloadDir().resolve(UUID.randomUUID() + extension);
+    private Path downloadFile(URI audioUrl, URI referer) {
+        Path target = null;
         try {
             HttpRequest request = HttpRequest.newBuilder(audioUrl)
                     .timeout(properties.getProcessingTimeout())
                     .GET()
-                    .header("User-Agent", "audio-downloader-bot/1.0")
+                    .header("User-Agent", userAgent())
+                    .header("Referer", referer.toString())
                     .build();
             HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() >= 400) {
                 throw new AudioNotFoundException("Audio file is unavailable");
             }
+
+            String contentType = response.headers().firstValue("content-type").orElse("");
+            String extension = extensionFromUri(audioUrl)
+                    .or(() -> extensionFromContentType(contentType))
+                    .orElse(".audio");
+            target = properties.getDownloadDir().resolve(UUID.randomUUID() + extension);
             try (InputStream body = response.body()) {
                 Files.copy(body, target);
             }
@@ -251,6 +317,57 @@ public class AudioDownloadService {
         }
         String lower = path.toLowerCase();
         return AUDIO_EXTENSIONS.stream().filter(lower::endsWith).findFirst();
+    }
+
+    private Optional<String> extensionFromContentType(String contentType) {
+        String lower = contentType == null ? "" : contentType.toLowerCase();
+        if (lower.startsWith("audio/mpeg") || lower.startsWith("audio/mp3")) {
+            return Optional.of(".mp3");
+        }
+        if (lower.startsWith("audio/mp4") || lower.startsWith("audio/x-m4a")) {
+            return Optional.of(".m4a");
+        }
+        if (lower.startsWith("audio/aac")) {
+            return Optional.of(".aac");
+        }
+        if (lower.startsWith("audio/ogg")) {
+            return Optional.of(".ogg");
+        }
+        if (lower.startsWith("audio/wav") || lower.startsWith("audio/x-wav")) {
+            return Optional.of(".wav");
+        }
+        if (lower.startsWith("audio/flac") || lower.startsWith("audio/x-flac")) {
+            return Optional.of(".flac");
+        }
+        if (lower.startsWith("audio/webm")) {
+            return Optional.of(".webm");
+        }
+        return Optional.empty();
+    }
+
+    private boolean isAudioResource(URI uri, URI referer) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                    .timeout(properties.getRequestTimeout())
+                    .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                    .header("User-Agent", userAgent())
+                    .header("Referer", referer.toString())
+                    .build();
+            HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+            return response.statusCode() < 400 && response.headers()
+                    .firstValue("content-type")
+                    .map(contentType -> contentType.toLowerCase().startsWith("audio/"))
+                    .orElse(false);
+        } catch (IOException | InterruptedException | IllegalArgumentException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            return false;
+        }
+    }
+
+    private String userAgent() {
+        return "Mozilla/5.0 (compatible; audio-downloader-bot/1.0)";
     }
 
     private String safeFilename(Path path) {

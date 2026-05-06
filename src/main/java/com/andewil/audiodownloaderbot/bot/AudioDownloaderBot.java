@@ -9,6 +9,9 @@ import com.andewil.audiodownloaderbot.i18n.MessageCatalog;
 import com.andewil.audiodownloaderbot.i18n.SupportedLanguage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -25,9 +28,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 @Component
+@Slf4j
 public class AudioDownloaderBot implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
-
-    private static final Logger log = LoggerFactory.getLogger(AudioDownloaderBot.class);
 
     private final BotProperties properties;
     private final MessageCatalog messages;
@@ -57,6 +59,7 @@ public class AudioDownloaderBot implements SpringLongPollingBot, LongPollingSing
         if (!update.hasMessage() || !update.getMessage().hasText()) {
             return;
         }
+        log.info("Received update: {}", update);
 
         Message message = update.getMessage();
         Long chatId = message.getChatId();
@@ -82,9 +85,10 @@ public class AudioDownloaderBot implements SpringLongPollingBot, LongPollingSing
             SendAudio sendAudio = SendAudio.builder()
                     .chatId(chatId.toString())
                     .audio(new InputFile(audio.file().toFile(), audio.filename()))
-                    .title(audio.filename())
+                    .title("Audio from " + url)
                     .build();
             telegramClient.execute(sendAudio);
+            log.info("Audio sent to chatId: {}", chatId);
         } catch (AudioTooLargeException e) {
             sendText(chatId, messages.tooLarge(language));
         } catch (AudioNotFoundException e) {
