@@ -2,6 +2,7 @@ package com.andewil.audiodownloaderbot.bot;
 
 import com.andewil.audiodownloaderbot.audio.AudioDownloadService;
 import com.andewil.audiodownloaderbot.audio.AudioNotFoundException;
+import com.andewil.audiodownloaderbot.audio.AudioProcessingException;
 import com.andewil.audiodownloaderbot.audio.AudioTooLargeException;
 import com.andewil.audiodownloaderbot.audio.DownloadedAudio;
 import com.andewil.audiodownloaderbot.config.BotProperties;
@@ -42,6 +43,10 @@ public class AudioDownloaderBot implements SpringLongPollingBot, LongPollingSing
         this.messages = messages;
         this.audioDownloadService = audioDownloadService;
         this.telegramClient = new OkHttpTelegramClient(properties.getToken());
+
+        if (properties.getToken() == null) {
+            throw new IllegalArgumentException("Bot token cannot be null");
+        }
     }
 
     @Override
@@ -93,6 +98,9 @@ public class AudioDownloaderBot implements SpringLongPollingBot, LongPollingSing
             sendText(chatId, messages.tooLarge(language));
         } catch (AudioNotFoundException e) {
             sendText(chatId, messages.notFound(language));
+        } catch (AudioProcessingException e) {
+            log.warn("Audio source was found but processing failed", e);
+            sendText(chatId, messages.failed(language));
         } catch (TelegramApiException e) {
             log.warn("Telegram API failed while sending audio", e);
             sendText(chatId, messages.failed(language));

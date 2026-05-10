@@ -19,33 +19,33 @@ public class MessageCatalog {
 
     public String welcome(SupportedLanguage language) {
         return switch (language) {
-            case GERMAN -> "Hallo! Ich kann Audio aus einer Seite finden, herunterladen, in ein Telegram-kompatibles Format konvertieren und dir als Datei senden.\n\nSende mir einfach einen Link. Wenn ich keine Audiodaten finde, sage ich Bescheid.";
-            case RUSSIAN -> "Привет! Я могу найти аудио на странице, скачать его, конвертировать в формат, совместимый с Telegram, и отправить файл в этот чат.\n\nПросто пришлите ссылку. Если аудио не найдется, я сообщу об этом.";
-            case ENGLISH -> "Hi! I can find audio on a web page, download it, convert it to a Telegram-compatible format, and send the file back to this chat.\n\nJust send me a link. If I cannot find audio data, I will let you know.";
+            case GERMAN -> "Hallo! Ich kann Audio aus Webseiten und YouTube-Links finden, herunterladen, in ein Telegram-kompatibles Format konvertieren und dir als Datei senden.\n\nSende mir einfach einen Link. Wenn ich keine Audiodaten finde, sage ich Bescheid.";
+            case RUSSIAN -> "Привет! Я могу найти аудио на странице или в YouTube-ссылке, скачать его, конвертировать в формат, совместимый с Telegram, и отправить файл в этот чат.\n\nПросто пришлите ссылку. Если аудио не найдется, я сообщу об этом.";
+            case ENGLISH -> "Hi! I can find audio on a web page or in a YouTube link, download it, convert it to a Telegram-compatible format, and send the file back to this chat.\n\nJust send me a link. If I cannot find audio data, I will let you know.";
         };
     }
 
     public String sendUrl(SupportedLanguage language) {
         return switch (language) {
-            case GERMAN -> "Bitte sende einen Link zu einer Seite oder Audiodatei.";
-            case RUSSIAN -> "Пожалуйста, отправьте ссылку на страницу или аудиофайл.";
-            case ENGLISH -> "Please send a link to a page or an audio file.";
+            case GERMAN -> "Bitte sende einen Link zu einer Seite, einer Audiodatei oder einem YouTube-Video.";
+            case RUSSIAN -> "Пожалуйста, отправьте ссылку на страницу, аудиофайл или YouTube-видео.";
+            case ENGLISH -> "Please send a link to a page, an audio file, or a YouTube video.";
         };
     }
 
     public String processing(SupportedLanguage language) {
         return switch (language) {
-            case GERMAN -> "Ich analysiere die Seite und suche nach Audio...";
-            case RUSSIAN -> "Анализирую страницу и ищу аудио...";
-            case ENGLISH -> "I am analyzing the page and looking for audio...";
+            case GERMAN -> "Ich analysiere den Link und suche nach Audio...";
+            case RUSSIAN -> "Анализирую ссылку и ищу аудио...";
+            case ENGLISH -> "I am analyzing the link and looking for audio...";
         };
     }
 
     public String notFound(SupportedLanguage language) {
         return switch (language) {
-            case GERMAN -> "Ich konnte auf dieser Seite keine Audiodaten finden.";
-            case RUSSIAN -> "Я не нашел аудио на этой странице.";
-            case ENGLISH -> "I could not find audio data on this page.";
+            case GERMAN -> "Ich konnte unter diesem Link keine Audiodaten finden.";
+            case RUSSIAN -> "Я не нашел аудио по этой ссылке.";
+            case ENGLISH -> "I could not find audio data at this link.";
         };
     }
 

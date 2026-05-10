@@ -10,4 +10,5 @@ bot:
   processing-timeout: ${BOT_PROCESSING_TIMEOUT:PT10M}
   max-file-size: ${BOT_MAX_FILE_SIZE:52428800}
   yt-dlp-path: ${YT_DLP_PATH:yt-dlp}
+  yt-dlp-js-runtime: ${YT_DLP_JS_RUNTIME:}
   ffmpeg-path: ${FFMPEG_PATH:ffmpeg}

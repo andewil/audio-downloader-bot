@@ -7,9 +7,20 @@ Telegram bot written with Java, Spring Boot, Maven and rubenlagus TelegramBots.
 - Java 17+
 - Maven 3.9+
 - Telegram bot token from BotFather
-- Optional but recommended: `yt-dlp` and `ffmpeg` available in PATH
+- `yt-dlp` and `ffmpeg` available in PATH for YouTube links
+- Optional but recommended for other sites: `yt-dlp` and `ffmpeg` available in PATH
 
-`yt-dlp` gives the bot broad page support. Without it, the bot can still download direct audio URLs and common `<audio>`, `<source>`, `og:audio` links from HTML pages.
+YouTube links are handled by `yt-dlp`: the bot downloads the best available audio stream, extracts it to MP3 with `ffmpeg`, validates the configured file-size limit, and sends the MP3 to Telegram.
+
+Recent YouTube extraction may require a JavaScript runtime. In WSL/Ubuntu, install `nodejs` and run the bot with:
+
+```powershell
+$env:YT_DLP_PATH="/home/andewil/.local/bin/yt-dlp"
+$env:FFMPEG_PATH="/usr/bin/ffmpeg"
+$env:YT_DLP_JS_RUNTIME="node:/usr/bin/node"
+```
+
+`yt-dlp` also gives the bot broad page support for non-YouTube sites. Without it, the bot can still download direct audio URLs and common `<audio>`, `<source>`, `og:audio` links from HTML pages.
 
 ## Run
 
@@ -30,4 +41,5 @@ All settings can be provided as environment variables:
 - `BOT_PROCESSING_TIMEOUT`
 - `BOT_MAX_FILE_SIZE`
 - `YT_DLP_PATH`
+- `YT_DLP_JS_RUNTIME`
 - `FFMPEG_PATH`
